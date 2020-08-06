@@ -1,6 +1,5 @@
 
 import math
-import pandas as pd
 import pandasql as psql
 
 def getLabelFiltroAnios(anios):
@@ -13,14 +12,114 @@ def getLabelFiltroAnios(anios):
 
     return LABEL_FILTRO_ANIOS
 
+def getFiltroDepto(dataframe):
+    consulta = """
+                                SELECT DISTINCT
+                                     depto_ocu
+                                FROM
+                                    dataframe
+                                order by cast(substr(depto_ocu,1,2) AS INTEGER)
+                               """
 
-def getWhere(filtro):
+    datos = psql.sqldf(consulta, locals())
+
+    return datos
+
+def getFallecidosDepartamento(dataframe,anio_inicial,anio_final,FiltroAdicional):
+    consulta = """
+                            SELECT
+                                 depto_ocu
+                                ,round(avg(cantidad)) as cantidad
+                            FROM(
+                                    SELECT
+                                         depto_ocu
+                                        ,año_ocu
+                                        ,count(año_ocu) as cantidad
+                                    FROM
+                                        dataframe
+                                    where
+                                        año_ocu between {0} and {1} 
+                                    and depto_ocu is not null
+                                    {2}
+                                    group by
+                                        depto_ocu,año_ocu
+                                )
+                            group by depto_ocu
+                            order by cast(substr(depto_ocu,1,2) AS INTEGER)
+                           """.format(anio_inicial, anio_final,FiltroAdicional)
+
+    datos = psql.sqldf(consulta, locals())
+
+    return datos
+
+def getCasosTipoVehiculo(dataframe,anio_inicial,anio_final,FiltroAdicional):
+    consulta = """
+                        SELECT
+                             tipo_veh
+                            ,round(avg(cantidad)) as cantidad
+                        FROM(
+                                SELECT
+                                     tipo_veh
+                                    ,año_ocu
+                                    ,count(año_ocu) as cantidad
+                                FROM
+                                    dataframe
+                                where
+                                    año_ocu between {0} and {1} 
+                                and tipo_veh is not null
+                                and tipo_veh <> '99 - Ignorado'
+                                {2}
+                                group by
+                                    tipo_veh,año_ocu
+                            )
+                        group by tipo_veh
+                        order by cast(substr(tipo_veh,1,2) AS INTEGER)
+                       """.format(anio_inicial, anio_final,FiltroAdicional)
+
+    datos = psql.sqldf(consulta, locals())
+
+    return datos
+
+def getCasosColor(dataframe, anio_inicial,anio_final,FiltroAdicional):
+    consulta = """
+                    SELECT
+                         color_veh
+                        ,round(avg(cantidad)) as cantidad
+                    FROM(
+                            SELECT
+                                 color_veh
+                                ,año_ocu
+                                ,count(año_ocu) as cantidad
+                            FROM
+                                dataframe
+                            where
+                                año_ocu between {0} and {1} 
+                            and color_veh is not null
+                            and color_veh <> '99 - Ignorado'
+                            {2}
+                            group by
+                                color_veh,año_ocu
+                        )
+                    group by color_veh
+                    order by cast(substr(color_veh,1,2) AS INTEGER)
+                   """.format(anio_inicial, anio_final,FiltroAdicional)
+
+    datos = psql.sqldf(consulta, locals())
+
+    return datos
+
+
+def getWhereIn(campo,filtro):
     Where = ''
 
-    for valor in range(len(filtro)):
-        if(valor == 0):
-            Where += filtro[valor]
-        Where += ' AND {0}'.format(filtro[valor])
+    if(filtro is not None):
+        Where = ' AND {0} in ('.format(campo)
+        for valor in range(len(filtro)):
+            Where += "'{0}'".format(filtro[valor])
+            if(valor < (len(filtro) - 1)):
+                Where += ','
+
+        Where += ')'
 
     return Where
 
@@ -39,9 +138,9 @@ def getCasosMunicipio(dataframe):
 
     coordenadas = psql.sqldf(q1, locals())
 
-    print(coordenadas)
+    #print(coordenadas)
 
-def getLesionadoFallecido(dataframe,anio_inicial,anio_final):
+def getLesionadoFallecido(dataframe,anio_inicial,anio_final,FiltroAdicional):
 
     resultado = {}
 
@@ -62,15 +161,17 @@ def getLesionadoFallecido(dataframe,anio_inicial,anio_final):
                             año_ocu between {0} and {1} 
                         and fall_les is not null
                         and sexo_per <> '9 - Ignorado'
+                        {2}
                         group by
                             sexo_per, fall_les,año_ocu
                     )
                 group by sexo_per, fall_les
                 order by sexo_per
-               """.format(anio_inicial,anio_final)
+               """.format(anio_inicial,anio_final,FiltroAdicional)
+
 
     datos = psql.sqldf(consulta, locals())
-    #print(datos)
+
 
     resultado = {'hombre':{
                             'fallecidos':int(datos['cantidad'].values[0]),

@@ -9,12 +9,10 @@ import dash_table
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
-import plotly.graph_objs as go
 import dash_bootstrap_components as dbc
+import plotly.graph_objects as go
 import pandas as pd
-import pandasql as psql
 import base64
-import math
 
 #---     METODOS
 
@@ -23,49 +21,27 @@ import math
 # Link Repositorio
 LINK_GITHUB = ''
 
+DESCRIPCION_PROYECTO = """
+Se muestra una exploración básica de los datos promedios de los Accidentes de Transito, según la información 
+obtenida desde la página del Instituto Nacional de Estadística de Guatemala.
+"""
 PATH_DATA_FILE = 'Accidentes de Transito.xlsx'
 
+# Cargando información de Fallecidos y Lesionados
+
 DATA_FALLECIDOS_LESIONADOS = pd.read_excel(PATH_DATA_FILE, sheet_name='Fallecidos-Lesionados')
-#print(manager.getLesionadoFallecido(DATA_FALLECIDOS_LESIONADOS,2017,2019))
-
 FILTRO_ANIOS = DATA_FALLECIDOS_LESIONADOS.año_ocu.unique()
+FILTRO_DEPARTAMENTOS = manager.getFiltroDepto(DATA_FALLECIDOS_LESIONADOS)
 
-#DATA_HECHOS_TRANSITO = pd.read_excel(PATH_DATA_FILE, sheet_name='Hechos-Transito')
 
+# Cargando información de Hechos de Transito
+DATA_HECHOS_TRANSITO = pd.read_excel(PATH_DATA_FILE, sheet_name='Hechos-Transito')
 
+# Cargando información de Vehículos involucrados
 DATA_VEHICULOS_INVOLUCRADOS = pd.read_excel(PATH_DATA_FILE, sheet_name='Vehiculos-Involucrados')
-#print(manager.getEstadoConductor(DATA_VEHICULOS_INVOLUCRADOS,2017,2019))
 
 
 
-
-
-#q1 = """
-#        SELECT
-#             tipo_eve as 'Tipo de Evento'
-#            ,año_ocu as 'Año Ocurrido'
-#        FROM
-#            DATA_FALLECIDOS_LESIONADOS
-#      """
-
-"""
-temp_fallecidos = psql.sqldf(q1, locals())
-
-#print( psql.sqldf(q1, locals()) )
-
-
-table = pd.pivot_table(temp_fallecidos,index=["Tipo de Evento"],columns=["Año Ocurrido"],values=["Año Ocurrido"],aggfunc={"Año Ocurrido":len},fill_value=0)
-
-columnas_table = []
-for columnas in list(table.columns):
-    columnas_table.append(str(columnas[1]))
-
-table.columns = columnas_table
-table.insert(0, 'Tipo de Evento', table.index)
-
-print(manager.getCasosMunicipio(DATA_FALLECIDOS_LESIONADOS))
-
-"""
 
 # Logo universidad del Valle de Guatemala
 file_uvg_logo = 'uvg-logo.jpg' # replace with your own image
@@ -93,8 +69,9 @@ app.layout = html.Div(children=[
                 dbc.Col(
                     (
                         html.Br(),
-                        html.H2(children='Exploración: Accidentes de Transito'),
-                        html.P(children='Pablo Sao'),
+                        html.H2(children='Exploración: Accidentes de Tránsito'),
+                        html.P(children='Pablo Sao (Ing. Bioinformática)'),
+                        html.P(children=DESCRIPCION_PROYECTO,id='texto-info')
                     ),
                     width={"size": 6,"order": 2},
                 ),
@@ -130,7 +107,9 @@ app.layout = html.Div(children=[
                                             dbc.Row([
                                                 dbc.Col(children=[
                                                     html.H6("Rango de Años:")
-                                                ],width={"size": 3,"offset": 2},align="left"),
+                                                ],width={"size": 2},id='filter-anio'#,align="right"
+                                                ),
+
                                                 dbc.Col(children=[
                                                     dcc.RangeSlider(
                                                         id = 'sl-rango-anios',
@@ -140,8 +119,25 @@ app.layout = html.Div(children=[
                                                         marks=manager.getLabelFiltroAnios(FILTRO_ANIOS),
                                                         value=[min(FILTRO_ANIOS), max(FILTRO_ANIOS)]
                                                     ),
-                                                ],width={"size": 4,},align="right"),
-                                            ],no_gutters=True,
+                                                ]), #,width={"size": 4,},align="right"),
+
+                                                dbc.Col(children=[
+                                                    html.H6("Departamentos")
+                                                ],width={"size": 2},id='filter-departament'#,align="right"
+                                                ),
+
+                                                dbc.Col(children=[
+                                                    dcc.Dropdown(
+                                                        id = 'dropdown-deptos',
+                                                        options=[
+                                                            {'label': i[1]['depto_ocu'], 'value': i[1]['depto_ocu']} for i in FILTRO_DEPARTAMENTOS.iterrows()
+                                                        ],
+                                                        multi=True,
+                                                        placeholder='Seleccione Departamentos'
+                                                    ),
+                                                ]),
+
+                                            ],#,no_gutters=True,
                                             ),
 
 
@@ -163,37 +159,6 @@ app.layout = html.Div(children=[
 
         html.Div(id='output-container-range-slider')
 
-        #dbc.Row([
-        #    dbc.Col(
-        #        children=[
-                    #dash_table.DataTable(
-                    #    id='table',
-                    #    columns=[{"name": i, "id": i} for i in table.columns],
-                    #    data=table.to_dict('records'),
-                    #    style_data_conditional= manager.style_heatMap_table(table)
-                    #),
-
-                    #html.Div([
-                    #    dbc.Row([
-                    #        #dbc.Col(children=[
-                    #        #    html.H3("Descripción")
-                    #        #],align="center"),
-                    #        dbc.Col(children=[
-                    #            html.H4("HOMBRES"),
-                    #            html.Div(id='output-container-range-slider')
-                    #        ],align="center"),
-                    #        dbc.Col(children=[
-                    #            html.H4("MUJERES")
-                    #        ],align="center"),
-                    #    ],align="center"
-                    #    ),
-                    #]),
-
-
-        #        ]),
-
-        #]),
-
     ],fluid=True),
 
 ])
@@ -214,14 +179,86 @@ def toggle_collapse(n,is_open):
 # Filtro de Slider
 @app.callback(
     dash.dependencies.Output('output-container-range-slider', 'children'),
-    [dash.dependencies.Input('sl-rango-anios', 'value')])
-def update_output(value):
+    [dash.dependencies.Input('dropdown-deptos', 'value'),
+     dash.dependencies.Input('sl-rango-anios', 'value')])
+def update_output(dropdownDeptos,value):
 
+
+    FiltroDepto = ''
+
+    if( (dropdownDeptos is not None) and (len(dropdownDeptos)>0)):
+        FiltroDepto = manager.getWhereIn('depto_ocu', dropdownDeptos)
+
+
+
+    NombreDeptos = ''
+    control_len = 70
+    if(dropdownDeptos is not None and len(dropdownDeptos) > 0):
+        NombreDeptos = ' <br> de '
+        for valor in dropdownDeptos:
+            NombreDeptos += ' {0},'.format(valor)
+            if(len(NombreDeptos) >=control_len):
+                control_len +=70
+                NombreDeptos += ' <br> '
 
     # Llamado del promedio de lesionados y fallecidos
-    avg_les_fall = manager.getLesionadoFallecido(DATA_FALLECIDOS_LESIONADOS, int(value[0]), int(value[1]))
+    avg_les_fall = manager.getLesionadoFallecido(DATA_FALLECIDOS_LESIONADOS, int(value[0]), int(value[1]),FiltroDepto)
 
+    # obteniendo promedio de estado de conductores por sexo (hebrio, sobrio)
     avg_estado_conductor = manager.getEstadoConductor(DATA_VEHICULOS_INVOLUCRADOS,int(value[0]),int(value[1]))
+
+    #
+    #              Obtenemos la cantidad de casos por Color de vehículo
+    # -------------------------------------------------------------------------
+    avg_casos_color_vehiculo = manager.getCasosColor(DATA_VEHICULOS_INVOLUCRADOS,int(value[0]),int(value[1]),FiltroDepto)
+
+    trace_colorVehiculo = go.Bar(x=avg_casos_color_vehiculo['color_veh'],
+                                 y=avg_casos_color_vehiculo['cantidad'],
+                                 text=avg_casos_color_vehiculo['cantidad'],
+                                 textposition='auto'
+                                )
+    layout_color = go.Layout(title='Promedio de Accidentes del año {0} al {1}, <br>por Color de Vehículo {2}'.format(int(value[0]),int(value[1]),NombreDeptos),
+                        # Same x and first y
+                        xaxis_title='Color de Vehículo',
+                        yaxis_title='Promedio de Accidentes',
+                        height=700
+                        )
+
+    #
+    #              Obtenemos la cantidad de casos por Tipo de Vehículo
+    # -------------------------------------------------------------------------
+    avg_casos_tipo_vehiculo = manager.getCasosTipoVehiculo(DATA_HECHOS_TRANSITO,int(value[0]),int(value[1]),FiltroDepto)
+
+    trace_tipoVehiculo = go.Bar(x=avg_casos_tipo_vehiculo['tipo_veh'],
+                                 y=avg_casos_tipo_vehiculo['cantidad'],
+                                 text=avg_casos_tipo_vehiculo['cantidad'],
+                                 textposition='auto'
+                                 )
+    layout_tipoV = go.Layout(
+        title='Promedio de Accidentes del año {0} al {1}, <br>por Tipo de Vehículo {2}'.format(int(value[0]), int(value[1]),NombreDeptos),
+        # Same x and first y
+        xaxis_title='Tipo de Vehículo',
+        yaxis_title='Promedio de Accidentes',
+        height=700
+        )
+
+    #
+    #              Obtenemos la cantidad de casos por Departamento
+    # -------------------------------------------------------------------------
+    avg_casos_municipio = manager.getFallecidosDepartamento(DATA_FALLECIDOS_LESIONADOS,int(value[0]),int(value[1]),FiltroDepto)
+
+    trace_departamento = go.Bar(x=avg_casos_municipio['depto_ocu'],
+                                y=avg_casos_municipio['cantidad'],
+                                text=avg_casos_municipio['cantidad'],
+                                textposition='auto'
+                                )
+    layout_departamento = go.Layout(
+        title='Promedio de Accidentes del año {0} al {1}, <br>por Departamento'.format(int(value[0]), int(value[1])),
+        # Same x and first y
+        xaxis_title='Departamento',
+        yaxis_title='Promedio de Accidentes',
+        height=700
+    )
 
     return (
 
@@ -329,6 +366,38 @@ def update_output(value):
                 ], color="info", inverse=True),
             ]),
 
+        ]),
+
+        html.Br(),
+
+        dbc.Row([
+            dbc.Col(children=[
+
+                dcc.Graph(id='graph-vcolor', figure={
+                    'data': [trace_colorVehiculo],
+                    'layout': layout_color
+                }),
+            ]),
+
+            dbc.Col(children=[
+
+                dcc.Graph(id='graph-vtipo', figure={
+                    'data': [trace_tipoVehiculo],
+                    'layout': layout_tipoV
+                }),
+            ]),
+        ]),
+
+        html.Br(),
+
+        dbc.Row([
+            dbc.Col(children=[
+
+                dcc.Graph(id='graph-depto', figure={
+                    'data': [trace_departamento],
+                    'layout': layout_departamento
+                }),
+            ]),
         ]),
 
     )

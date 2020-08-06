@@ -3,3 +3,14 @@
   justify-content: center;
   align-items: center;
 }
+
+#filter-anio,#filter-departament {
+  display: flex;
+  justify-content: right;
+  align-items: center;
+}
+
+#texto-info{
+  text-align: justify;
+  text-justify: inter-word;
+}
