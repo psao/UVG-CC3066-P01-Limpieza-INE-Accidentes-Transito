@@ -3,3 +3,7 @@ Las colisiones de transito son causados por diversos factores del vehículo, el 
 
 # Requerimientos
 Para poder ejecutar sin problema el proyecto se debe tener instaladas las librerias del archivo **requirements.txt**, ejecutando el siguiente comando desde la linea de comandos (Terminal)
+
+```Python
+pip install -r requirements.txt
+```
