@@ -22,5 +22,5 @@ Para ejecutar el programa se debe ejecutar el archivo **app.py**, si se ejecuta 
 ```bash
 python app.py
 ```
-# Autores
+# Autor
 * Pablo Sao (Ing. Bioinformática)
