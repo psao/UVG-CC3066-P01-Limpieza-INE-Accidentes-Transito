@@ -19,7 +19,7 @@ import base64
 
 #---     VARIABLES ESTATICAS     ---#
 # Link Repositorio
-LINK_GITHUB = ''
+LINK_GITHUB = 'https://github.com/psao/UVG-CC3066-P01-Limpieza-INE-Accidentes-Transito'
 
 DESCRIPCION_PROYECTO = """
 Se muestra una exploración básica de los datos promedios de los Accidentes de Transito, según la información 
